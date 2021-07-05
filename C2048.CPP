@@ -38,7 +38,45 @@ int sprite_9[8] = {0xc00f,0x3030,0x3030,0xf00f,0x3000,0xc000,0x003f,0x0000};
 
 int *sprites[10] = {sprite_0, sprite_1, sprite_2, sprite_3, sprite_4, sprite_5,\
 								 sprite_6, sprite_7, sprite_8, sprite_9};
-int sprite_full[48];
+
+#define SPRITE_FULL_HEIGHT 48
+#define SPRITE_WIDTH 8
+int sprite_full[SPRITE_FULL_HEIGHT];
+
+int digits_0[4] = {-1,-1,-1,-1};
+int digits_2[4] = {-1,-1,-1,2};
+int digits_4[4] = {-1,-1,-1,4};
+int digits_8[4] = {-1,-1,-1,8};
+int digits_16[4] = {-1,-1,1,6};
+int digits_32[4] = {-1,-1,3,2};
+int digits_64[4] = {-1,-1,6,4};
+int digits_128[4] = {-1,1,2,8};
+int digits_256[4] = {-1,2,5,6};
+int digits_512[4] = {-1,5,1,2};
+int digits_1024[4] = {1,0,2,4};
+int digits_2048[4] = {2,0,4,8};
+int digits_4096[4] = {4,0,9,6};
+int digits_8192[4] = {8,1,9,2};
+
+int* digits(int number){
+	switch(number){
+		case 2: return digits_2;
+		case 4: return digits_4;
+		case 8: return digits_8;
+		case 16: return digits_16;
+		case 32: return digits_32;
+		case 64: return digits_64;
+		case 128: return digits_128;
+		case 256: return digits_256;
+		case 512: return digits_512;
+		case 1024: return digits_1024;
+		case 2048: return digits_2048;
+		case 4096: return digits_4096;
+		case 8192: return digits_8192;
+		default:
+			return digits_0;
+	}
+}
 
 
 int I(int x, int y){
@@ -228,7 +266,7 @@ void draw_sprite(int *sprite, int dest_x, int dest_y, int w, int h){
 		int far *dst = (int far *)dstc;
 		int pattern = sprite_width_masks[w];
 		//to apply "w" we'd need to AND with a pattern based on w
-		*dst = (*(sprite+row) & pattern);
+		*dst ^= (*(sprite+row) & pattern);
 	}
 }
 
@@ -240,30 +278,70 @@ void setup_graphics(){
 		sprite_full[j] = 0xffff;
 }
 
+void fill_block(int x, int y, int* sprite){
+	//TODO precalculate dithered patterns on start
+	//block is already 48 px tall
+	int dst_y = y*48;
+	for(int dst_x = x*48; dst_x < (x+1)*48; dst_x+=SPRITE_WIDTH){
+		draw_sprite(sprite, dst_x, dst_y, SPRITE_WIDTH, SPRITE_FULL_HEIGHT);
+	}
+}
+
 void draw_block(int x, int y){
-	//outline
+	//fill the outline
+	if(is_blank(x,y)){
+	 //todo clear the block - we probably need a black sprite
+
+	}
+	else{
+		int mysprite[48];
+		colorize_sprite(sprite_full, mysprite, SPRITE_FULL_HEIGHT, PATTERN_CYAN);
+		fill_block(x,y, mysprite);
+		//draw the value
+		int value = tiles[I(x,y)];
+		int* num_digits = digits(value);
+		for(int d = 0; d < 4; d++){
+			int sprite_num = num_digits[d];
+			if(sprite_num == -1)
+				continue;
+			draw_sprite(sprites[num_digits[d]], x*48+d*8+4, y*48+16, 8, 8);
+		}
+//		printf("|%4d", tiles[I(x,y)]);
+	}
+
 	//horizontal
 	//draw the digits
 
 }
 
+//void vertical_line(int x, int y,
+
 void draw_grid(){
-	//we could draw the grid first
+	for(int i = 0; i <= 4; i++){
+	 //horizontal lines
+	 for(int x = 0; x < 192; x+=8)
+		 draw_sprite(sprite_full,x, i*48, 8, 1);
+	 //vertical line
+	 for(int y = 0; y < 192; y+=SPRITE_FULL_HEIGHT)
+		 draw_sprite(sprite_full,i*48, y, 1, SPRITE_FULL_HEIGHT);
+	}
+}
+
+void draw_blocks(){
 	for(int y = 0; y < 4; y++){
 		for(int x = 0; x < 4; x++){
 		 draw_block(x,y);
 		}
-	}
-
-	for(int i = 0; i <= 4; i++){
-	 //vertical line
-	 draw_sprite(full
 	}
 }
 
 int main(void){
 	setup_graphics();
 	new_game();
+	draw_grid();
+	getch();
+	draw_blocks();
+	getch();
 
 	while(1){
 		print_game();

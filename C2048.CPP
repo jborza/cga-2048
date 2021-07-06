@@ -42,10 +42,11 @@ int *sprites[10] = {sprite_0, sprite_1, sprite_2, sprite_3, sprite_4, sprite_5,\
 
 #define SPRITE_FULL_HEIGHT 48
 #define SPRITE_WIDTH 8
-int sprite_full[SPRITE_FULL_HEIGHT];
+//int sprite_full[SPRITE_FULL_HEIGHT];
 
 int pattern_black[48],pattern_0[48],pattern_1[48];
-int patterns[10][48];
+int patterns[11][48];
+int *sprite_full = patterns[8];
 
 int digits_0[4] = {-1,-1,-1,-1};
 int digits_2[4] = {-1,-1,-1,2};
@@ -82,20 +83,29 @@ int* digits(int number){
 	}
 }
 
+void make_pattern(int idx, int first, int second){
+	 for(int i = 0; i < 48; i+=2){
+		patterns[idx][i] = first;
+		patterns[idx][i+1] = second;
+	}
+}
+
 void make_patterns(){
 	for(int j = 0; j < 48; j++)
 		sprite_full[j] = 0xffff;
 	memset(pattern_black,0x00,48);
-	for(int i = 0; i < 48; i+=2){
-		pattern_0[i] = 0x1111;  // black, cyan
-		pattern_0[i+1] = 0x4444;
-	}
-	for(i = 0; i < 48; i+=2){
-		pattern_1[i] = PATTERN_CYAN;
-		pattern_1[i+1] = PATTERN_CYAN;
-	}
-
+	make_pattern(0, 0x1111, 0x4444); //cyan, black
+	make_pattern(1, PATTERN_CYAN, PATTERN_CYAN);
+	make_pattern(2, 0x7777, 0xDDDD); //cyan, white
+	make_pattern(3, 0xEEEE, 0xBBBB); //magenta, white
+	make_pattern(4, PATTERN_MAGENTA, PATTERN_MAGENTA);
+	make_pattern(5, 0x1111, 0x8888); //magenta, black
+	make_pattern(6, 0x6666, 0x9999); //magenta, cyan
+	make_pattern(7, 0x3333, 0xCCCC); //black, white
+	make_pattern(8, 0xFFFF, 0xFFFF); //white
+	make_pattern(9, 0x0000, 0x0000); //black
 }
+
 int I(int x, int y){
  return y*WIDTH+x; //TODO macro
 }
@@ -304,7 +314,10 @@ void draw_block(int x, int y){
 	else{
 		int mysprite[48];
 		colorize_sprite(sprite_full, mysprite, SPRITE_FULL_HEIGHT, PATTERN_CYAN);
-		fill_block(x,y, pattern_0);
+		if(y == 3)
+			fill_block(x,y, patterns[x+4]);
+		else
+			fill_block(x,y, patterns[x]);
 		//draw the value
 		int value = tiles[I(x,y)];
 		int* num_digits = digits(value);
@@ -348,9 +361,9 @@ void draw_game(){
 int main(void){
 	setup_graphics();
 	new_game();
-	draw_grid();
-	getch();
 	draw_blocks();
+	getch();
+	draw_grid();
 	getch();
 
 	while(1){
@@ -375,8 +388,6 @@ int main(void){
 				return 0;
 		}
 
-//		print_game();
-//    break; //I don't want to restart my computer yet to exit the program ;)
 	}
 
 //	return 0;

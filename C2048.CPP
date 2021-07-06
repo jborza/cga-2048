@@ -3,6 +3,7 @@
 #include <conio.h>
 #include <stdlib.h>
 #include <dos.h>
+#include <string.h>
 
 #define WIDTH 4
 #define HEIGHT 4
@@ -13,7 +14,7 @@ long score;
 
 void set_mode(unsigned char mode){
 	union REGS regs;
-  regs.x.ax = (unsigned int) mode;
+	regs.x.ax = (unsigned int) mode;
   int86(0x10, &regs, &regs);
 }
 
@@ -42,6 +43,9 @@ int *sprites[10] = {sprite_0, sprite_1, sprite_2, sprite_3, sprite_4, sprite_5,\
 #define SPRITE_FULL_HEIGHT 48
 #define SPRITE_WIDTH 8
 int sprite_full[SPRITE_FULL_HEIGHT];
+
+int pattern_black[48],pattern_0[48],pattern_1[48];
+int patterns[10][48];
 
 int digits_0[4] = {-1,-1,-1,-1};
 int digits_2[4] = {-1,-1,-1,2};
@@ -78,7 +82,20 @@ int* digits(int number){
 	}
 }
 
+void make_patterns(){
+	for(int j = 0; j < 48; j++)
+		sprite_full[j] = 0xffff;
+	memset(pattern_black,0x00,48);
+	for(int i = 0; i < 48; i+=2){
+		pattern_0[i] = 0x1111;  // black, cyan
+		pattern_0[i+1] = 0x4444;
+	}
+	for(i = 0; i < 48; i+=2){
+		pattern_1[i] = PATTERN_CYAN;
+		pattern_1[i+1] = PATTERN_CYAN;
+	}
 
+}
 int I(int x, int y){
  return y*WIDTH+x; //TODO macro
 }
@@ -104,17 +121,17 @@ void new_game(){
 
 #ifdef TEST
 	//debugging board with fixed layout
-	tiles[4] = 2048;
-	tiles[5] = 1024;
-	tiles[6] = 512;
-	tiles[7] = 256;
-	tiles[8] = 8;
-	tiles[9] = 4;
-	tiles[10] = 2;
-	tiles[12] = 128;
-	tiles[13] = 64;
-	tiles[14] = 32;
-	tiles[15] = 16;
+	tiles[12] = 2048;
+	tiles[13] = 1024;
+	tiles[14] = 512;
+	tiles[15] = 256;
+	tiles[4] = 8;
+	tiles[5] = 4;
+	tiles[6] = 2;
+	tiles[8] = 128;
+	tiles[9] = 64;
+	tiles[10] = 32;
+	tiles[11] = 16;
 #else
 	spawn_block();
 	spawn_block();
@@ -123,20 +140,6 @@ void new_game(){
 
 int is_blank(int x, int y){
 	return tiles[I(x,y)] == 0;
-}
-
-void print_game(){
- printf("\n *2048*       Score: %d\n", score);
- printf("\n-------------------------\n");
- for(int y = 0; y < HEIGHT; y++){
-	for(int x = 0; x < WIDTH; x++){
-		if(is_blank(x,y))
-			printf("|    ");
-		else
-			printf("|%4d", tiles[I(x,y)]);
-	}
-	printf("|\n-------------------------\n");
-}
 }
 
 void move(int x, int y, int dx, int dy, int fence_x, int fence_y, int &merged_rowcol){
@@ -194,6 +197,7 @@ void move_up(){
 		move(x,y,dx,dy,fence_x,fence_y,merged_rowcol);
 	 } //for y
 	} //for x
+	//TODO spawn block only when moved
 	spawn_block();
 }
 
@@ -266,16 +270,20 @@ void draw_sprite(int *sprite, int dest_x, int dest_y, int w, int h){
 		int far *dst = (int far *)dstc;
 		int pattern = sprite_width_masks[w];
 		//to apply "w" we'd need to AND with a pattern based on w
-		*dst ^= (*(sprite+row) & pattern);
+		*dst = (*(sprite+row) & pattern);
 	}
+}
+
+void clear_screen(){
+	_fmemset(screen, 0x00, 80*100);
+	_fmemset(screenalt, 0x00, 80*100);
 }
 
 void setup_graphics(){
 	set_mode(0x4);
 	screen = (char far*) MK_FP(0xB800,0);
 	screenalt = (char far*) MK_FP(0xB800,0x2000);
-	for(int j = 0; j < 48; j++)
-		sprite_full[j] = 0xffff;
+	make_patterns();
 }
 
 void fill_block(int x, int y, int* sprite){
@@ -291,27 +299,23 @@ void draw_block(int x, int y){
 	//fill the outline
 	if(is_blank(x,y)){
 	 //todo clear the block - we probably need a black sprite
-
+		fill_block(x,y,pattern_black);
 	}
 	else{
 		int mysprite[48];
 		colorize_sprite(sprite_full, mysprite, SPRITE_FULL_HEIGHT, PATTERN_CYAN);
-		fill_block(x,y, mysprite);
+		fill_block(x,y, pattern_0);
 		//draw the value
 		int value = tiles[I(x,y)];
 		int* num_digits = digits(value);
+		//draw the digits
 		for(int d = 0; d < 4; d++){
 			int sprite_num = num_digits[d];
 			if(sprite_num == -1)
 				continue;
 			draw_sprite(sprites[num_digits[d]], x*48+d*8+4, y*48+16, 8, 8);
 		}
-//		printf("|%4d", tiles[I(x,y)]);
 	}
-
-	//horizontal
-	//draw the digits
-
 }
 
 //void vertical_line(int x, int y,
@@ -335,6 +339,12 @@ void draw_blocks(){
 	}
 }
 
+void draw_game(){
+	clear_screen();
+	draw_blocks();
+	draw_grid();
+}
+
 int main(void){
 	setup_graphics();
 	new_game();
@@ -344,7 +354,8 @@ int main(void){
 	getch();
 
 	while(1){
-		print_game();
+//		print_game();
+		draw_game();
 		int key = getch();
 		switch(key){
 			//let's do WASD instead of arrow keys and worry about keycodes later
@@ -364,7 +375,7 @@ int main(void){
 				return 0;
 		}
 
-		print_game();
+//		print_game();
 //    break; //I don't want to restart my computer yet to exit the program ;)
 	}
 

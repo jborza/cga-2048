@@ -1,0 +1,144 @@
+<html>
+
+<head>
+
+</head>
+
+<body>
+    <canvas id="canvas" width="320" height="240" ;></canvas>
+    <script>
+
+        const magenta = "#ff55ff";
+        const cyan = "#55ffff";
+        const black = "#000";
+        const white = "#fff";
+
+        let WIDTH = 4;
+        function I(x, y) {
+            return y * WIDTH + x; //TODO macro
+        }
+
+        var tileColors1 = [];
+        var tileColors2 = [];
+        tileColors1[0] = black;
+        tileColors2[0] = white;
+        tileColors1[1] = black;
+        tileColors2[1] = cyan;
+        tileColors1[2] = cyan;
+        tileColors2[2] = cyan;
+        tileColors1[3] = white;
+        tileColors2[3] = cyan;
+        tileColors1[4] = white;
+        tileColors2[4] = magenta;
+        tileColors1[5] = magenta;
+        tileColors2[5] = magenta;
+        tileColors1[6] = black;
+        tileColors2[6] = magenta;
+        tileColors1[7] = cyan;
+        tileColors2[7] = magenta;
+        
+
+
+        function getTileColor1(i){
+            return tileColors1[i % tileColors1.length];
+        }
+
+        function getTileColor2(i){
+            return tileColors2[i % tileColors2.length];
+        }
+
+        var tiles = [];
+        for (let i = 0; i < 15; i++)
+            tiles[i] = 0;
+        tiles[4] = 8;
+        tiles[5] = 4;
+        tiles[6] = 2;
+        tiles[8] = 128;
+        tiles[9] = 64;
+        tiles[10] = 32;
+        tiles[11] = 16;
+        tiles[12] = 2048;
+        tiles[13] = 1024;
+        tiles[14] = 512;
+        tiles[15] = 256;
+
+        var c = document.getElementById("canvas");
+        var ctx = canvas.getContext('2d');
+
+        //see also https://github.com/jborza/hourglass-js/blob/master/index.html
+
+        //fill with black - default
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, 320, 200);
+
+        let tileWidth = 48;
+        let gridWidth = tileWidth * 4;
+        //make a rectangle of 192x192 with white border
+        ctx.strokeStyle = "#fff";
+        ctx.strokeRect(0, 0, gridWidth, gridWidth);
+        //split into 48x48 px tiles
+
+
+        //dithering combinations: 
+        function ditherRect(x, y, w, h, color1, color2) {
+            for (let xx = x; xx < x + w; xx++) {
+                for (let yy = y; yy < y + h; yy++) {
+                    ctx.fillStyle = ((xx + yy) % 2 == 0) ? color1 : color2;
+                    ctx.fillRect(xx, yy, 1, 1);
+                }
+            }
+        }
+
+        //test dithering
+        // ditherRect(0, 0, 48, 48, black, magenta);
+        // ditherRect(0, 48, 48, 48, black, cyan);
+        // ditherRect(0, 48*2, 48, 48, magenta, cyan);
+        // ditherRect(0, 48*3, 48, 48, black, white);
+        // ditherRect(48, 48*0, 48, 48, cyan, cyan);
+        // ditherRect(48, 48*1, 48, 48, magenta, magenta);
+        // ditherRect(48, 48*2, 48, 48, magenta, white);
+        // ditherRect(48, 48*3, 48, 48, cyan, white);
+
+
+        
+        ctx.font = '22px serif';
+        ctx.fillStyle = "#000";
+
+        for (let y = 0; y < 4; y++) {
+            for (let x = 0; x < 4; x++) {
+                let idx = I(x, y);
+                let value = tiles[idx];
+                
+                let tileColor = Math.log2(tiles[idx]);
+                if(value > 0){
+                    ditherRect(x*tileWidth, y*tileWidth, tileWidth, tileWidth, getTileColor1(tileColor), getTileColor2(tileColor));
+                }
+
+                ctx.strokeRect(x * tileWidth, y * tileWidth, tileWidth, tileWidth);
+                //TODO color tile per value
+                ctx.fillStyle = "#000";
+                ctx.fillText(value, x * tileWidth, y * tileWidth + 32);
+                console.log(idx);
+                
+                
+                console.log('idx:', tileColor);
+                //get digits
+                for(let d = 0; d < 5; d++){
+                    let digit = Math.log10()
+                }
+            }
+        }
+
+        //score, time
+        ctx.font = '24px serif';
+        ctx.fillStyle = "#fff";
+        ctx.fillText('SCORE', gridWidth + 16, 32);
+        ctx.fillText('1536', gridWidth + 16, 64);
+
+        ctx.fillText('TIME', gridWidth + 16, 128);
+        ctx.fillText('1536', gridWidth + 16, 160);
+
+    </script>
+</body>
+
+</html>
